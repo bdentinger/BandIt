@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#070d1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BandIt">
+  <meta name="description" content="Free mobile gel electrophoresis image analyzer">
+  <title>BandIt — Gel Analyzer</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">Band<span>It</span></div>
+    <div class="header-actions">
+      <button class="btn-icon" id="btn-export-img" title="Export image">💾</button>
+      <button class="btn-icon" id="btn-export-csv" title="Export CSV">📊</button>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="tabs">
+    <button class="tab active" data-panel="camera-panel">
+      <span class="tab-icon">📷</span>Camera
+    </button>
+    <button class="tab" data-panel="analyze-panel">
+      <span class="tab-icon">🔬</span>Analyze
+    </button>
+    <button class="tab" data-panel="results-panel">
+      <span class="tab-icon">📋</span>Results
+    </button>
+  </nav>
+
+  <!-- ── Camera Panel ─────────────────────────────── -->
+  <div id="camera-panel" class="panel active">
+    <video id="video-preview" autoplay playsinline muted></video>
+    <div class="camera-controls">
+      <div class="exposure-row">
+        <label>Exposure</label>
+        <input type="range" id="exposure-slider" min="-3" max="3" step="0.1" value="0">
+        <span class="exposure-val" id="exposure-val">0</span>
+      </div>
+      <div class="camera-btn-row">
+        <button class="btn btn-secondary" id="btn-flip">🔄 Flip</button>
+        <button class="btn btn-primary" id="btn-capture">📷 Capture</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Analyze Panel ────────────────────────────── -->
+  <div id="analyze-panel" class="panel">
+
+    <!-- Image display area -->
+    <div class="canvas-container">
+      <div id="dropzone" class="dropzone" style="width:100%; margin:16px;">
+        <div class="dropzone-icon">🧬</div>
+        <div class="dropzone-text">Upload a gel image</div>
+        <div class="dropzone-sub">tap to browse or drag & drop</div>
+      </div>
+      <canvas id="gel-canvas" class="hidden"></canvas>
+    </div>
+
+    <!-- Controls -->
+    <div class="analyze-controls">
+
+      <!-- Upload -->
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="btn-upload">📂 Upload Image</button>
+        <button class="btn btn-secondary" id="btn-rotate">↻ Rotate</button>
+        <button class="btn btn-danger" id="btn-clear">✕ Clear</button>
+      </div>
+      <input type="file" id="file-input" accept="image/*" class="hidden">
+
+      <!-- Image Enhancement -->
+      <div class="control-group">
+        <div class="control-group-title">Image Enhancement</div>
+        <div class="control-row">
+          <label>Brightness</label>
+          <input type="range" id="brightness" min="-100" max="100" value="0">
+          <span class="exposure-val" id="brightness-val">0</span>
+        </div>
+        <div class="control-row">
+          <label>Contrast</label>
+          <input type="range" id="contrast" min="-100" max="100" value="0">
+          <span class="exposure-val" id="contrast-val">0</span>
+        </div>
+        <div class="toggle-row">
+          <label>Invert (dark on light)</label>
+          <label class="toggle">
+            <input type="checkbox" id="invert-toggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Gel Setup -->
+      <div class="control-group">
+        <div class="control-group-title">Gel Setup</div>
+        <div class="control-row">
+          <label>Ladder</label>
+          <select id="ladder-select"></select>
+        </div>
+        <div class="control-row hidden" id="custom-ladder-row">
+          <label>Bands (bp)</label>
+          <input type="text" id="custom-ladder-input" placeholder="e.g. 1000,800,600,400,200">
+        </div>
+        <div class="control-row">
+          <label>Lanes per comb</label>
+          <input type="number" id="lane-count" value="8" min="1" max="30">
+        </div>
+        <div class="control-row">
+          <label>Combs</label>
+          <select id="comb-count">
+            <option value="1">1</option>
+            <option value="2">2</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Lane Detection -->
+      <div class="control-group">
+        <div class="control-group-title">Lane Detection</div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="btn-auto-lanes">⚡ Auto-detect Lanes</button>
+          <button class="btn btn-secondary" id="btn-add-lane">＋ Add Lane</button>
+        </div>
+        <div class="mt-8 text-dim" style="font-size:0.75rem;">Double-tap a lane chip to mark/unmark as ladder</div>
+        <div id="lane-strip" class="lane-strip mt-8"></div>
+      </div>
+
+      <!-- Band Detection -->
+      <div class="control-group">
+        <div class="control-group-title">Band Detection</div>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-full" id="btn-detect-bands">🎯 Detect Bands</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Results Panel ─────────────────────────────── -->
+  <div id="results-panel" class="panel">
+    <div style="padding:16px;">
+      <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn btn-secondary" id="btn-export-img2" onclick="document.getElementById('btn-export-img').click()">💾 Export Image</button>
+        <button class="btn btn-amber" id="btn-export-csv2" onclick="document.getElementById('btn-export-csv').click()">📊 Export CSV</button>
+      </div>
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Lane</th>
+            <th>Band</th>
+            <th>Position</th>
+            <th>Size</th>
+          </tr>
+        </thead>
+        <tbody id="results-tbody">
+          <tr>
+            <td colspan="4" class="no-results">No results yet — analyze a gel first</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<div id="toast"></div>
+
+<script src="js/ladders.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/detection.js"></script>
+<script src="js/export.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
